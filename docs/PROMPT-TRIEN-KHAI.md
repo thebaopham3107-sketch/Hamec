@@ -5,7 +5,7 @@
 
 ---
 
-Bạn đang ở thư mục gốc của gói **mentor-club-ai-assistant** (TÔM Voice — trợ lý điều khiển
+Bạn đang ở thư mục gốc của gói **hamec-ai-assistant** (TÔM Voice — trợ lý điều khiển
 Claude Code bằng giọng nói/chữ qua Lark). Hãy triển khai gói này trên MÁY NÀY theo đúng
 hợp đồng **`itto.yaml`** (đọc file đó trước — nó mô tả Input/Tech/Tool/Output). Làm tuần tự:
 

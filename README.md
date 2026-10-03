@@ -1,4 +1,4 @@
-# mentor-club-ai-assistant — TÔM Voice 🎙️
+# hamec-ai-assistant — TÔM Voice 🎙️
 
 Trợ lý AI **điều khiển Claude Code bằng GIỌNG NÓI (hoặc chữ) ngay trong Lark**.
 Bạn **bấm micro nói** trong một nhóm Lark → vài giây sau **nghe TÔM trả lời bằng giọng tiếng Việt**;
@@ -56,7 +56,7 @@ node scripts/check-setup.mjs        # môi trường + Lark + .env đã sẵn? (
 
 ## Cấu trúc
 ```
-mentor-club-ai-assistant/
+hamec-ai-assistant/
 ├── itto.yaml            # hợp đồng ITTO (Input/Tech/Tool/Output)
 ├── check-itto.mjs       # cổng chốt gói (zero-dep)
 ├── docs/                # hướng dẫn cài + PHIẾU INPUT + PROMPT triển khai

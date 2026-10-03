@@ -1,12 +1,12 @@
 # ============================================================================
-# itto.yaml — HỢP ĐỒNG ITTO của gói mentor-club-ai-assistant (TÔM Voice)
+# itto.yaml — HỢP ĐỒNG ITTO của gói hamec-ai-assistant (TÔM Voice)
 # Trợ lý AI điều khiển Claude Code bằng GIỌNG NÓI / CHỮ qua nhóm Lark.
 # KIND = local-app: CHẠY TẠI MÁY (không GitHub Actions). "Nút bấm" = double-click
 # start.ps1; "trigger" = tin nói/gõ trong nhóm điều khiển Lark.
 # Soát gói: `node check-itto.mjs` (zero-dependency).
 # ============================================================================
 
-package: mentor-club-ai-assistant
+package: hamec-ai-assistant
 version: 1.0.0
 kind: local-app
 skill: none   # đây là app chạy nền, không phải Claude skill

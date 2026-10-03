@@ -1,0 +1,31 @@
+# ── TUYỆT ĐỐI không commit — chứa danh tính/khoá riêng của từng máy ──
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+# Môi trường Python riêng (cài lại bằng install.ps1)
+.venv/
+**/.venv/
+__pycache__/
+*.pyc
+
+# Trạng thái & file tạm khi bridge chạy
+voice-tmp/
+logs/
+memory.json
+sessions.json
+bridge.pid
+bridge.heartbeat
+history-*.jsonl
+customer-care/
+*.opus
+*.mp3
+*.wav
+
+# Node
+node_modules/
+
+# Rác hệ điều hành
+Thumbs.db
+.DS_Store
