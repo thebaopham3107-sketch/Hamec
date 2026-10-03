@@ -1,0 +1,14 @@
+# Python phụ thuộc cho TÔM Voice (edge-tts — KHÔNG cần key Vbee).
+# install.ps1 tự tạo venv (.venv) và cài các gói này. Cài lại thủ công:
+#   uv venv --python 3.12 .venv
+#   uv pip install --python .venv/Scripts/python.exe -r requirements.txt
+faster-whisper   # STT: nghe giọng → chữ (model tự tải lần đầu)
+edge-tts         # TTS: chữ → giọng (Microsoft, miễn phí, không cần key)
+python-dotenv    # đọc file .env
+
+# ── GPU NVIDIA (KHÔNG cài mặc định — install.ps1 tự cài nếu thấy nvidia-smi) ──
+# THIẾU 2 gói này thì Whisper NẠP được trên GPU nhưng SUY LUẬN ném lỗi ngầm
+# ("cublas64_12.dll not found") → server trả rỗng → bot báo "Nghe không rõ".
+# whisper-server.py có bước warmup: nếu GPU vẫn lỗi thì tự lùi về CPU.
+# nvidia-cublas-cu12
+# nvidia-cudnn-cu12

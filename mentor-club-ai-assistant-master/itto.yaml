@@ -1,0 +1,67 @@
+# ============================================================================
+# itto.yaml — HỢP ĐỒNG ITTO của gói mentor-club-ai-assistant (TÔM Voice)
+# Trợ lý AI điều khiển Claude Code bằng GIỌNG NÓI / CHỮ qua nhóm Lark.
+# KIND = local-app: CHẠY TẠI MÁY (không GitHub Actions). "Nút bấm" = double-click
+# start.ps1; "trigger" = tin nói/gõ trong nhóm điều khiển Lark.
+# Soát gói: `node check-itto.mjs` (zero-dependency).
+# ============================================================================
+
+package: mentor-club-ai-assistant
+version: 1.0.0
+kind: local-app
+skill: none   # đây là app chạy nền, không phải Claude skill
+
+# ── I — INPUT: chuẩn bị TRƯỚC khi chạy ──
+input:
+  dieu_kien_bat_buoc:
+    - "App Lark (open.larksuite.com) bật Bot + event im.message.receive_v1 + scope im:message, im:message:send_as_bot, im:resource → PUBLISH version"
+    - "lark-cli đã đăng nhập app này (--as bot); bot đã được THÊM vào NHÓM ĐIỀU KHIỂN"
+    - "claude (Claude Code CLI) đã đăng nhập trên máy"
+    - "Windows: chạy launcher bằng PowerShell (start.ps1). macOS/Linux: chạy `node scripts/lark-voice-bridge.mjs`"
+  can_cai_truoc:
+    - "Node.js >= 18"
+    - "Python 3.10–3.12 (hoặc uv) — install.ps1 tự tạo venv"
+    - "ffmpeg trên PATH (chuyển audio chuẩn Lark)"
+    - "GPU NVIDIA (tuỳ chọn) — install.ps1 tự cài cuBLAS/cuDNN nếu có nvidia-smi"
+  secrets:                          # KHÔNG commit — nằm trong lark-cli profile / .env
+    - "LARK_APP_ID + LARK_APP_SECRET (dùng đăng nhập lark-cli, KHÔNG lưu trong repo)"
+    - OWNER_OPEN_ID
+    - CONTROL_CHAT_ID
+  variables:                        # cấu hình trong .env
+    - BRAIN_ROOT
+    - CLAUDE_MODEL
+    - WHISPER_MODEL
+    - VOICE_CODE
+    - PERMISSION_MODE
+  phieu_input: docs/00-PHIEU-INPUT.md
+  preflight: node scripts/check-setup.mjs   # + node check-itto.mjs
+
+# ── T — TECH ──
+tech:
+  - "Node bridge nghe Lark qua lark-cli event consume (long-connection, KHÔNG cần public URL/webhook)"
+  - "STT: faster-whisper (server thường trú, tự lùi CPU nếu GPU lỗi)"
+  - "TTS: edge-tts (Microsoft, miễn phí, giọng Việt) → ffmpeg → opus chuẩn Lark"
+  - "Bộ não: claude -p (Claude Code headless) chạy trong BRAIN_ROOT"
+  - "Chỉ CHỦ (OWNER_OPEN_ID) ra lệnh được; bot chỉ hoạt động trong CONTROL_CHAT_ID"
+
+# ── T — TOOL ──
+tool:
+  install: powershell -ExecutionPolicy Bypass -File scripts/install.ps1
+  check:   node scripts/check-setup.mjs
+  start:   powershell -ExecutionPolicy Bypass -File scripts/start.ps1
+  whoami:  node scripts/whoami.mjs
+  watchdog: node scripts/watchdog.mjs        # đăng ký Scheduled Task để chạy 24/7
+  bridge:  scripts/lark-voice-bridge.mjs
+  stt:     scripts/whisper-server.py
+  tts:     scripts/text_to_mp3.py            # edge-tts (mặc định); Vbee: scripts/text_to_mp3_vbee.py
+  cach_dung: "Vào NHÓM ĐIỀU KHIỂN Lark → NÓI (micro) hoặc GÕ chữ → TÔM trả lời bằng giọng/chữ."
+
+# ── O — OUTPUT ──
+output:
+  writes_back:
+    - "Trả lời GẮN vào đúng tin của CHỦ trong nhóm điều khiển (voice → audio, text → chữ)"
+  proof: "Cửa sổ bridge hiện '✅ Bridge sẵn sàng' + '✅ whisper STT sẵn sàng'; nói 1 câu → nghe TÔM đáp bằng giọng"
+  note: |
+    Không có Lark Base / bảng: đây là app điều khiển, không phải module sync.
+    Muốn 24/7: đăng ký scripts/watchdog.mjs vào Windows Scheduled Task (xem docs/04-chay-va-24-7.md).
+    bypassPermissions = TÔM chạy thẳng lệnh máy → chỉ bật trên máy của bạn.
