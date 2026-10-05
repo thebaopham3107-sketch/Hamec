@@ -514,14 +514,14 @@ async function runUserCommand(cmd, { voice, replyTo, who = null }) {
 
 async function processCommand(job) {
   const cmd = (job.text || "").trim();
-  if (job.who) {                                  // thành viên: chỉ vài lệnh nhanh vô hại
+  if (job.who && CFG.memberMode !== "full") {     // thành viên chỉ đọc: chỉ vài lệnh nhanh vô hại
     if (cmd === "/ping" || cmd === "/help" || cmd === "/id") { if (await handleQuick(cmd, job.messageId)) return; }
     else if (cmd.startsWith("/")) return replyText(job.messageId, "🔒 Lệnh này chỉ chủ nhóm dùng được.");
     return runUserCommand(cmd, { voice: false, replyTo: job.messageId, who: job.who });
   }
   if (await handleCareApproval(cmd)) return;   // duyệt nháp khách (K1 ok / sửa / bỏ)
   if (await handleQuick(cmd, job.messageId)) return;
-  await runUserCommand(cmd, { voice: false, replyTo: job.messageId });
+  await runUserCommand(cmd, { voice: false, replyTo: job.messageId, who: job.who || null });
 }
 
 // Tin VOICE: tải → STT → Claude → trả lời bằng giọng (1 tin duy nhất, gắn vào tin voice của anh)
