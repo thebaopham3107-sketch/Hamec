@@ -32,6 +32,15 @@ node check-setup.mjs
 node lark-voice-bridge.mjs
 ```
 
+**Bật bằng double-click (macOS):** `scripts/start-mac.command`. Tạo nút trên Desktop:
+```bash
+ln -s "$(pwd)/start-mac.command" ~/Desktop/NGHE.command
+```
+- `requirements.txt` đã ghim `av<17`: bản `av` mới hơn làm faster-whisper 1.2.x trả về rỗng, bot báo "Nghe không rõ" với mọi câu.
+- Máy không có GPU NVIDIA (mọi máy Mac) thì Whisper chạy CPU; `medium` vẫn nghe một câu ngắn trong khoảng 3–5 giây.
+- Máy đã có `lark-cli` đăng nhập app khác: tạo profile riêng cho NGHÉ rồi điền vào `.env`:
+  `LARK_CLI_PROFILE=<tên-profile>` và `LARK_CLI_BIN=<repo>/scripts/lark-cli-profile.sh`.
+
 ## GPU NVIDIA (tuỳ chọn, nghe nhanh hơn + dùng được `medium`)
 `install.ps1` tự cài `nvidia-cublas-cu12` + `nvidia-cudnn-cu12` nếu có `nvidia-smi`.
 Cài tay:

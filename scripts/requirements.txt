@@ -3,6 +3,7 @@
 #   uv venv --python 3.12 .venv
 #   uv pip install --python .venv/Scripts/python.exe -r requirements.txt
 faster-whisper   # STT: nghe giọng → chữ (model tự tải lần đầu)
+av<17            # faster-whisper 1.2.x gọi av.open(metadata_errors=...) — av>=17 bỏ tham số này → STT rỗng ("Nghe không rõ")
 edge-tts         # TTS: chữ → giọng (Microsoft, miễn phí, không cần key)
 python-dotenv    # đọc file .env
 

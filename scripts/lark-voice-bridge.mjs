@@ -357,6 +357,30 @@ function speakable(s) {
     .replace(/[*_`#>|~]/g, "")
     .replace(/\s+/g, " ").trim().slice(0, 700);
 }
+// Làm sạch text gửi Lark (tin text không render markdown): bỏ #, **, `, bảng |, emoji, đường kẻ
+const EMOJI_RE = /[\p{Extended_Pictographic}️‍]/gu;
+function plainText(s) {
+  const out = [];
+  for (let l of String(s || "").replace(/\r/g, "").replace(/```[a-z]*\n?/gi, "").split("\n")) {
+    if (/^[\s|:-]+$/.test(l) && l.includes("-") && l.includes("|")) continue;         // dòng kẻ bảng
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(l)) continue;                              // đường kẻ ngang
+    if (/^\s*\|.*\|\s*$/.test(l)) l = l.trim().slice(1, -1).split("|").map(c => c.trim()).filter(Boolean).join(" – ");
+    l = l.replace(/^\s{0,3}#{1,6}\s+/, "")
+      .replace(/^\s*>\s?/, "")
+      .replace(/^(\s*)[*+]\s+/, "$1- ")
+      .replace(/\*\*([^*]+)\*\*/g, "$1").replace(/__([^_]+)__/g, "$1")
+      .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,:;!?]|$)/g, "$1$2")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/\[\[(?:[^\]|]*\/)?([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, a, b) => b || a)
+      .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, "$1 ($2)")
+      .replace(/<br\s*\/?>/gi, "; ")
+      .replace(/\\([_*#|`\\])/g, "$1")
+      .replace(EMOJI_RE, "")
+      .replace(/^ (?=\S)/, "").replace(/(\S) {2,}/g, "$1 ").replace(/\s+$/, "");
+    out.push(l);
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
 // Whisper STT server thường trú (nạp model 1 lần, tự khởi động lại)
 function startWhisper() {
   const script = path.join(__dirname, "whisper-server.py");
@@ -417,6 +441,9 @@ async function handleCareApproval(cmd) {
 // ── Xử lý lệnh (text & voice) ────────────────────────────────────────────────
 const VOICE_PREAMBLE = "Bối cảnh: anh đang nghe câu trả lời bằng giọng đọc.\n\nQUY TẮC BẮT BUỘC:\n1. Nếu yêu cầu cần HÀNH ĐỘNG (gửi, đăng, đọc, tìm, tạo...): GỌI TOOL THỰC SỰ NGAY trong lượt này. TUYỆT ĐỐI KHÔNG viết 'Em sẽ làm', 'Em sẽ gửi', 'Chờ em' rồi kết thúc mà không gọi tool — đó là nói suông.\n2. Chỉ sau khi tool hoàn thành mới báo kết quả: văn nói tự nhiên tiếng Việt, tối đa 60 từ, không đọc link/markdown/emoji.\n3. Nếu chỉ là câu hỏi/trò chuyện: trả lời ngắn dưới 60 từ.\n\nYêu cầu của anh (chuyển từ giọng nói):\n";
 
+// Tin TEXT: trả lời thành MỘT tin chữ thường, bám mẫu quy trình trong wiki
+const TEXT_PREAMBLE = "Bối cảnh: câu trả lời được gửi thành MỘT tin nhắn chữ thường trên Lark (Lark KHÔNG hiển thị markdown).\n\nQUY TẮC TRÌNH BÀY BẮT BUỘC:\n1. Chỉ chữ thường: KHÔNG dùng #, **, *, `, bảng |, emoji, đường kẻ. Dùng số thứ tự (1. 2. 3.) và gạch đầu dòng \"- \".\n2. Chỉ MỘT câu trả lời duy nhất. KHÔNG tự gửi tin Lark (lark-cli im ...) — bridge sẽ gửi câu trả lời của bạn.\n3. Vào thẳng nội dung: bỏ lời dẫn, lời chào, câu kết thừa; không nêu đường dẫn file nội bộ hay việc đã lưu output (trừ khi anh hỏi).\n4. Khi hỏi về một QUY TRÌNH / CHÍNH SÁCH: đọc bản đầy đủ trong wiki/output (vd output/2026-10-02-qt-hanh-chinh-nhan-su/) và trình bày bám đúng mẫu văn bản gốc:\nTÊN QUY TRÌNH (viết hoa)\nMã số: ... | Soát xét: ... | Hiệu lực: ...\nBiên soạn: ... | Soát xét: ... | Phê duyệt: ...\n1. Mục đích: ...\n2. Phạm vi và đối tượng áp dụng: ...\n3... (các mục/luồng đúng số thứ tự như văn bản gốc; mỗi bước một dòng: \"Bước N – Tên công việc: diễn giải ngắn\", giữ nguyên mốc thời gian, người thực hiện, mã biểu mẫu)\nBiểu mẫu: ...\nNguồn: tên trang quy trình trên wiki.\n\nYêu cầu của anh:\n";
+
 // Lệnh nhanh; trả lời gắn vào tin của anh (replyTo). Trả về true nếu đã xử lý.
 async function handleQuick(cmd, replyTo) {
   if (cmd === "/ping") { await replyText(replyTo, `🟢 Bridge sống\nPhiên: ${sessionId ? sessionId.slice(0, 8) + "…" : "(mới)"} · Nhớ đệm: ${history.length} lượt\nVoice: ${CFG.voiceReply ? "BẬT" : "tắt"} · whisper ${whisperReady ? "sẵn sàng" : "đang nạp…"} (${CFG.whisperModel})\nGiọng: ${CFG.voiceCode || "mặc định"}`); return true; }
@@ -439,7 +466,7 @@ async function handleQuick(cmd, replyTo) {
 
 // Chạy 1 yêu cầu qua Claude (text hoặc đã-STT); trả lời GẮN vào tin của anh (replyTo).
 async function runUserCommand(cmd, { voice, replyTo }) {
-  const prompt = voice ? VOICE_PREAMBLE + cmd : cmd;
+  const prompt = (voice ? VOICE_PREAMBLE : TEXT_PREAMBLE) + cmd;
   const t0 = Date.now();
   let r = await runClaude(prompt, true);
   if (!r.ok && r.usedResume && /session|conversation|resume|not found|no such|no conversation/i.test(r.error || "")) {
@@ -458,10 +485,10 @@ async function runUserCommand(cmd, { voice, replyTo }) {
     if (!speech) return;
     const opus = await ttsToOpus(speech, String(Date.now())).catch(e => { log("✖ TTS:", e.message); return null; });
     if (opus && await replyAudio(replyTo, opus)) { log("🔊 đã gửi voice trả lời."); try { fs.unlinkSync(opus); } catch {} }
-    else await replyText(replyTo, r.result); // TTS hỏng → trả text cho khỏi mất câu trả lời
+    else await replyText(replyTo, plainText(r.result)); // TTS hỏng → trả text cho khỏi mất câu trả lời
     return;
   }
-  await replyText(replyTo, r.result);
+  await replyText(replyTo, plainText(r.result));
 }
 
 async function processCommand(job) {
@@ -566,7 +593,8 @@ async function processImage(job) {
     `Anh vừa gửi 1 ảnh qua Lark. Ảnh đã được lưu tại đường dẫn (tương đối từ thư mục làm việc): ${imgRelPath}${caption}\n\n` +
     `Hãy dùng Read tool để mở ảnh đó, xem nội dung và:\n` +
     `- Nếu anh có caption/câu hỏi → trả lời theo đúng yêu cầu đó.\n` +
-    `- Nếu không có caption → mô tả nội dung ảnh, nhận xét ngắn gọn, và hỏi anh cần làm gì với ảnh này.`;
+    `- Nếu không có caption → mô tả nội dung ảnh, nhận xét ngắn gọn, và hỏi anh cần làm gì với ảnh này.\n\n` +
+    TEXT_PREAMBLE.split("\n\nYêu cầu của anh:")[0];
 
   const t0 = Date.now();
   const r = await runClaude(prompt, true);
@@ -577,7 +605,7 @@ async function processImage(job) {
 
   if (!r.ok) return replyText(messageId, `❌ Claude lỗi (${secs}s): ${r.error || r.result || "(không rõ)"}`);
   remember(`[ảnh] ${job.caption || "(không caption)"}`, r.result, r.ok);
-  await replyText(messageId, r.result);
+  await replyText(messageId, plainText(r.result));
 }
 
 function onEvent(ev) {
@@ -658,11 +686,20 @@ log("owner:", CFG.ownerOpenId);
 log("nhóm :", CFG.controlChatId || "(tự học từ tin đầu tiên)");
 log("model:", CFG.model, "| quyền:", CFG.permissionMode, "| DRY_RUN:", CFG.dryRun);
 log("brain:", CFG.brainRoot);
-log("voice:", CFG.voiceReply ? `BẬT (whisper ${CFG.whisperModel}, VBee TTS)` : "tắt");
+log("voice:", CFG.voiceReply ? `BẬT (whisper ${CFG.whisperModel}, ${process.env.VBEE_SCRIPT ? "VBee" : "edge-tts"} TTS)` : "tắt");
 log("chăm khách:", CFG.careMode ? `BẬT (nháp→duyệt, model ${CFG.careModel}, sandbox ${CARE_DIR})` : "tắt");
 loadMem();        // khôi phục bối cảnh từ nhớ đệm (nếu có)
 // ── PID + heartbeat cho watchdog tự khởi động lại nếu bridge chết/treo ────────
 const PID_FILE = path.join(__dirname, "bridge.pid");
+// Chỉ cho chạy 1 bridge: 2 bản cùng chạy = trả lời 2 lần + 2 whisper tranh cổng
+try {
+  const old = Number(fs.readFileSync(PID_FILE, "utf8").trim());
+  if (old && old !== process.pid) {
+    let alive = false;
+    try { process.kill(old, 0); alive = true; } catch (e) { alive = e.code === "EPERM"; }
+    if (alive) { log(`✖ Bridge đang chạy sẵn (pid ${old}) — không bật bản thứ 2. Tắt bản cũ (Ctrl+C) rồi bật lại.`); process.exit(1); }
+  }
+} catch {}
 try { fs.writeFileSync(PID_FILE, String(process.pid)); } catch {}
 const HB_FILE = path.join(__dirname, "bridge.heartbeat");
 const updateHB = () => { try { fs.writeFileSync(HB_FILE, now()); } catch {} };
