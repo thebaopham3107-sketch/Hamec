@@ -48,6 +48,11 @@ const CFG = {
   webhook: process.env.LARK_WEBHOOK || "",
   // Khoá vào đúng 1 nhóm. Để trống → bridge tự học chat_id từ tin đầu tiên của chủ.
   controlChatId: process.env.CONTROL_CHAT_ID || "",
+  // THÀNH VIÊN khác trong nhóm điều khiển: off = chỉ chủ ra lệnh · readonly = hỏi/đọc tài liệu,
+  // KHÔNG chạy lệnh/sửa file (mặc định) · full = toàn quyền như chủ (cân nhắc kỹ)
+  memberMode: (process.env.MEMBER_MODE || "readonly").toLowerCase(),
+  // Giới hạn thành viên được hỏi (open_id, cách nhau dấu phẩy). Để trống = mọi người trong nhóm điều khiển
+  memberIds: (process.env.MEMBER_OPEN_IDS || "").split(",").map(s => s.trim()).filter(Boolean),
   // Lệnh gọi lark-cli / claude (cho phép override path tuyệt đối)
   larkCli: process.env.LARK_CLI_BIN || "lark-cli",
   claudeBin: process.env.CLAUDE_BIN || "claude",
@@ -101,18 +106,20 @@ if (!CFG.ownerOpenId) {
 const MEM_FILE = path.join(__dirname, "memory.json");
 let sessionId = null;   // phiên Claude (dùng --resume để nối ngữ cảnh)
 let history = [];       // transcript: [{ t, cmd, result, ok }]
+let memberSessions = {}; // open_id thành viên → session_id riêng
 
 function loadMem() {
   try {
     const m = JSON.parse(fs.readFileSync(MEM_FILE, "utf8"));
     sessionId = m.sessionId || null;
     history = Array.isArray(m.history) ? m.history : [];
+    memberSessions = (m.memberSessions && typeof m.memberSessions === "object") ? m.memberSessions : {};
     if (sessionId || history.length) log(`🧠 Khôi phục nhớ đệm: phiên ${sessionId ? sessionId.slice(0, 8) + "…" : "(mới)"}, ${history.length} lượt.`);
   } catch { /* chưa có file → bắt đầu mới */ }
 }
 function saveMem() {
   try {
-    fs.writeFileSync(MEM_FILE, JSON.stringify({ sessionId, updatedAt: now(), history: history.slice(-80) }, null, 2));
+    fs.writeFileSync(MEM_FILE, JSON.stringify({ sessionId, memberSessions, updatedAt: now(), history: history.slice(-80) }, null, 2));
   } catch (e) { log("✖ lưu nhớ đệm:", e.message); }
 }
 function remember(cmd, result, ok) {
@@ -192,14 +199,19 @@ async function postWebhook(payload) {
 }
 
 // ── Gọi Claude headless ──────────────────────────────────────────────────────
-function runClaude(prompt, useResume = true) {
+const READONLY_BLOCK = "Bash,Edit,Write,MultiEdit,NotebookEdit";
+function runClaude(prompt, useResume = true, who = null) {
   if (CFG.dryRun) {
     return Promise.resolve({ ok: true, result: `[DRY_RUN] Đã nhận lệnh (chưa gọi Claude thật):\n\n${prompt}` });
   }
-  const args = ["-p", "--output-format", "json", "--permission-mode", CFG.permissionMode];
+  const member = !!who;
+  const readonly = member && CFG.memberMode !== "full";
+  const args = ["-p", "--output-format", "json", "--permission-mode", readonly ? "default" : CFG.permissionMode];
+  if (readonly) args.push("--disallowedTools", READONLY_BLOCK, "--strict-mcp-config"); // không shell, không sửa file, không MCP
   if (CFG.model) args.push("--model", CFG.model);
-  const willResume = useResume && CFG.keepSession && !!sessionId;
-  if (willResume) args.push("--resume", sessionId);
+  const sid = member ? memberSessions[who] : sessionId;
+  const willResume = useResume && CFG.keepSession && !!sid;
+  if (willResume) args.push("--resume", sid);
 
   return new Promise((resolve) => {
     let child;
@@ -224,7 +236,7 @@ function runClaude(prompt, useResume = true) {
       if (timer) clearTimeout(timer);
       try {
         const j = JSON.parse(out);
-        if (j.session_id) { sessionId = j.session_id; saveMem(); } // nhớ phiên (bền vững)
+        if (j.session_id) { if (member) memberSessions[who] = j.session_id; else sessionId = j.session_id; saveMem(); } // nhớ phiên (bền vững)
         resolve({ ok: !j.is_error, result: j.result ?? j.message ?? out, usedResume: willResume });
       } catch {
         if (code !== 0 && !out) return resolve({ ok: false, result: "", error: `claude thoát mã ${code}: ${err.slice(0, 400)}`, usedResume: willResume });
@@ -444,6 +456,15 @@ const VOICE_PREAMBLE = "Bối cảnh: anh đang nghe câu trả lời bằng gi�
 // Tin TEXT: trả lời thành MỘT tin chữ thường, bám mẫu quy trình trong wiki
 const TEXT_PREAMBLE = "Bối cảnh: câu trả lời được gửi thành MỘT tin nhắn chữ thường trên Lark (Lark KHÔNG hiển thị markdown).\n\nQUY TẮC TRÌNH BÀY BẮT BUỘC:\n1. Chỉ chữ thường: KHÔNG dùng #, **, *, `, bảng |, emoji, đường kẻ. Dùng số thứ tự (1. 2. 3.) và gạch đầu dòng \"- \".\n2. Chỉ MỘT câu trả lời duy nhất. KHÔNG tự gửi tin Lark (lark-cli im ...) — bridge sẽ gửi câu trả lời của bạn.\n3. Vào thẳng nội dung: bỏ lời dẫn, lời chào, câu kết thừa; không nêu đường dẫn file nội bộ hay việc đã lưu output (trừ khi anh hỏi).\n4. Khi hỏi về một QUY TRÌNH / CHÍNH SÁCH: đọc bản đầy đủ trong wiki/output (vd output/2026-10-02-qt-hanh-chinh-nhan-su/) và trình bày bám đúng mẫu văn bản gốc:\nTÊN QUY TRÌNH (viết hoa)\nMã số: ... | Soát xét: ... | Hiệu lực: ...\nBiên soạn: ... | Soát xét: ... | Phê duyệt: ...\n1. Mục đích: ...\n2. Phạm vi và đối tượng áp dụng: ...\n3... (các mục/luồng đúng số thứ tự như văn bản gốc; mỗi bước một dòng: \"Bước N – Tên công việc: diễn giải ngắn\", giữ nguyên mốc thời gian, người thực hiện, mã biểu mẫu)\nBiểu mẫu: ...\nNguồn: tên trang quy trình trên wiki.\n\nYêu cầu của anh:\n";
 
+// Người hỏi là THÀNH VIÊN (không phải chủ): xưng hô trung tính + nhắc giới hạn quyền
+function memberPreamble(who) {
+  if (!who) return "";
+  const ro = CFG.memberMode !== "full";
+  return "LƯU Ý: người hỏi lần này là một THÀNH VIÊN trong nhóm, KHÔNG phải anh chủ máy. Gọi người hỏi là \"anh/chị\" thay cho \"anh\"." +
+    (ro ? " Thành viên chỉ được HỎI và XEM tài liệu: KHÔNG chạy lệnh, KHÔNG sửa/xoá/tạo file, KHÔNG gửi tin thay ai. Nếu yêu cầu cần làm những việc đó, trả lời ngắn rằng cần anh chủ nhóm thực hiện." : "") +
+    "\n\n";
+}
+
 // Lệnh nhanh; trả lời gắn vào tin của anh (replyTo). Trả về true nếu đã xử lý.
 async function handleQuick(cmd, replyTo) {
   if (cmd === "/ping") { await replyText(replyTo, `🟢 Bridge sống\nPhiên: ${sessionId ? sessionId.slice(0, 8) + "…" : "(mới)"} · Nhớ đệm: ${history.length} lượt\nVoice: ${CFG.voiceReply ? "BẬT" : "tắt"} · whisper ${whisperReady ? "sẵn sàng" : "đang nạp…"} (${CFG.whisperModel})\nGiọng: ${CFG.voiceCode || "mặc định"}`); return true; }
@@ -465,17 +486,17 @@ async function handleQuick(cmd, replyTo) {
 }
 
 // Chạy 1 yêu cầu qua Claude (text hoặc đã-STT); trả lời GẮN vào tin của anh (replyTo).
-async function runUserCommand(cmd, { voice, replyTo }) {
-  const prompt = (voice ? VOICE_PREAMBLE : TEXT_PREAMBLE) + cmd;
+async function runUserCommand(cmd, { voice, replyTo, who = null }) {
+  const prompt = memberPreamble(who) + (voice ? VOICE_PREAMBLE : TEXT_PREAMBLE) + cmd;
   const t0 = Date.now();
-  let r = await runClaude(prompt, true);
+  let r = await runClaude(prompt, true, who);
   if (!r.ok && r.usedResume && /session|conversation|resume|not found|no such|no conversation/i.test(r.error || "")) {
-    log("↻ Không resume được phiên cũ — chạy lại kèm bối cảnh từ nhớ đệm.");
-    sessionId = null; saveMem();
-    r = await runClaude(contextPreamble() + prompt, false);
+    log("↻ Không resume được phiên cũ — chạy lại" + (who ? " (phiên mới cho thành viên)." : " kèm bối cảnh từ nhớ đệm."));
+    if (who) { delete memberSessions[who]; saveMem(); r = await runClaude(prompt, false, who); }
+    else { sessionId = null; saveMem(); r = await runClaude(contextPreamble() + prompt, false); }
   }
   const secs = Math.round((Date.now() - t0) / 1000);
-  remember(cmd, r.ok ? r.result : (r.error || r.result), r.ok);
+  remember(who ? `[${String(who).slice(-6)}] ${cmd}` : cmd, r.ok ? r.result : (r.error || r.result), r.ok);
 
   if (!r.ok) return replyText(replyTo, `❌ Lỗi (${secs}s): ${r.error || r.result || "(không rõ)"}`);
 
@@ -493,6 +514,11 @@ async function runUserCommand(cmd, { voice, replyTo }) {
 
 async function processCommand(job) {
   const cmd = (job.text || "").trim();
+  if (job.who) {                                  // thành viên: chỉ vài lệnh nhanh vô hại
+    if (cmd === "/ping" || cmd === "/help" || cmd === "/id") { if (await handleQuick(cmd, job.messageId)) return; }
+    else if (cmd.startsWith("/")) return replyText(job.messageId, "🔒 Lệnh này chỉ chủ nhóm dùng được.");
+    return runUserCommand(cmd, { voice: false, replyTo: job.messageId, who: job.who });
+  }
   if (await handleCareApproval(cmd)) return;   // duyệt nháp khách (K1 ok / sửa / bỏ)
   if (await handleQuick(cmd, job.messageId)) return;
   await runUserCommand(cmd, { voice: false, replyTo: job.messageId });
@@ -509,7 +535,7 @@ async function processVoice(job) {
   try { fs.unlinkSync(absOpus); } catch {}
   if (!transcript) return replyText(messageId, "❌ Nghe không rõ. Anh nói lại rõ và chậm hơn.");
   log("🎤 nghe:", transcript.slice(0, 120));
-  await runUserCommand(transcript, { voice: true, replyTo: messageId });
+  await runUserCommand(transcript, { voice: true, replyTo: messageId, who: job.who || null });
 }
 
 function enqueue(job) {
@@ -597,7 +623,7 @@ async function processImage(job) {
     TEXT_PREAMBLE.split("\n\nYêu cầu của anh:")[0];
 
   const t0 = Date.now();
-  const r = await runClaude(prompt, true);
+  const r = await runClaude(memberPreamble(job.who) + prompt, true, job.who || null);
   const secs = Math.round((Date.now() - t0) / 1000);
 
   // 4. Dọn file tạm
@@ -635,6 +661,22 @@ function onEvent(ev) {
     if (!text) return;
     log("⟶ lệnh:", text.slice(0, 120));
     return enqueue({ kind: "text", text, messageId: id });
+  }
+
+  // 1b) THÀNH VIÊN khác trong NHÓM ĐIỀU KHIỂN → Claude theo MEMBER_MODE (mặc định chỉ đọc)
+  if (!isOwner && CFG.controlChatId && chat === CFG.controlChatId) {
+    if (CFG.memberMode === "off") { log("· bỏ qua tin thành viên (MEMBER_MODE=off):", String(sender).slice(-6)); return; }
+    if (CFG.memberIds.length && !CFG.memberIds.includes(sender)) { log("· bỏ qua tin thành viên ngoài danh sách MEMBER_OPEN_IDS:", sender); return; }
+    if (mt === "audio") { log("⟶ voice (thành viên", String(sender).slice(-6) + "):", id); return enqueue({ kind: "voice", messageId: id, who: sender }); }
+    if (mt === "image") {
+      const caption = extractText(ev) || "";
+      log("⟶ ảnh (thành viên", String(sender).slice(-6) + "):", id);
+      return enqueue({ kind: "image", messageId: id, caption, who: sender });
+    }
+    const text = extractText(ev);
+    if (!text) return;
+    log("⟶ lệnh (thành viên", String(sender).slice(-6) + "):", text.slice(0, 120));
+    return enqueue({ kind: "text", text, messageId: id, who: sender });
   }
 
   // 2) KHÁCH external (chat 1-1, KHÔNG phải chủ) → Claude-CHĂM-SÓC bị nhốt, nháp→duyệt
@@ -687,6 +729,7 @@ log("nhóm :", CFG.controlChatId || "(tự học từ tin đầu tiên)");
 log("model:", CFG.model, "| quyền:", CFG.permissionMode, "| DRY_RUN:", CFG.dryRun);
 log("brain:", CFG.brainRoot);
 log("voice:", CFG.voiceReply ? `BẬT (whisper ${CFG.whisperModel}, ${process.env.VBEE_SCRIPT ? "VBee" : "edge-tts"} TTS)` : "tắt");
+log("thành viên:", CFG.memberMode === "off" ? "tắt (chỉ chủ ra lệnh)" : `${CFG.memberMode === "full" ? "TOÀN QUYỀN" : "chỉ hỏi/đọc"} · ${CFG.memberIds.length ? CFG.memberIds.length + " người được phép" : "mọi người trong nhóm"}`);
 log("chăm khách:", CFG.careMode ? `BẬT (nháp→duyệt, model ${CFG.careModel}, sandbox ${CARE_DIR})` : "tắt");
 loadMem();        // khôi phục bối cảnh từ nhớ đệm (nếu có)
 // ── PID + heartbeat cho watchdog tự khởi động lại nếu bridge chết/treo ────────

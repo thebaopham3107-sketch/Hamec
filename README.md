@@ -51,6 +51,7 @@ node scripts/check-setup.mjs        # môi trường + Lark + .env đã sẵn? (
 ## Dùng hằng ngày
 - **Bật:** double-click `scripts/start.ps1` (hoặc shortcut trỏ tới nó).
 - **Nói/gõ** trong nhóm điều khiển → NGHÉ trả lời.
+- **Thành viên khác trong nhóm** cũng hỏi được (`MEMBER_MODE=readonly`, mặc định): chỉ hỏi và xem tài liệu, không chạy lệnh hay sửa file. Chủ (`OWNER_OPEN_ID`) vẫn toàn quyền. Đổi `MEMBER_MODE=off` để chỉ chủ ra lệnh, hoặc giới hạn người được hỏi bằng `MEMBER_OPEN_IDS`.
 - **Lệnh nhanh:** `/ping` · `/voice on|off` · `/help`.
 - **Tắt:** đóng cửa sổ (Ctrl+C).
 
