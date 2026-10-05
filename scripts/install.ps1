@@ -1,4 +1,4 @@
-# install.ps1 -- Cai dat mot lan cho TOM Voice (THUAN ASCII).
+# install.ps1 -- Cai dat mot lan cho NGHE (THUAN ASCII).
 # Tao moi truong Python rieng (.venv) + cai faster-whisper + edge-tts, tu dien
 # PYTHON_BIN vao .env, va kiem tra cac cong cu nen. Chay 1 lan tren may moi.
 #
@@ -11,7 +11,7 @@ Set-Location $here
 function Say($m, $c = "Gray") { Write-Host $m -ForegroundColor $c }
 function Pause-End($code) { Write-Host ""; try { Read-Host "Nhan Enter de dong" | Out-Null } catch {}; exit $code }
 
-Say "== TOM Voice -- cai dat ==" "Cyan"
+Say "== NGHE -- cai dat ==" "Cyan"
 
 # ── (1) Gop PATH ──
 $env:Path = ((@([Environment]::GetEnvironmentVariable("Path","Machine"),[Environment]::GetEnvironmentVariable("Path","User"),"C:\Program Files\nodejs",(Join-Path $env:APPDATA "npm")) | Where-Object { $_ }) -join ";")

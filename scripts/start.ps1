@@ -1,4 +1,4 @@
-# start.ps1 -- Bat TOM Voice (tro ly giong noi Lark <-> Claude Code).
+# start.ps1 -- Bat NGHE (tro ly giong noi Lark <-> Claude Code).
 #
 # GIU FILE NAY THUAN ASCII (khong dau tieng Viet, khong ky tu dac biet).
 # Windows PowerShell 5.1 doc .ps1 theo bang ma ANSI, khong phai UTF-8 -> bo dau
@@ -36,7 +36,7 @@ if (-not (Test-Path ".env")) {
   Pause-Then-Exit 1
 }
 
-Write-Host "[*] Dang bat TOM Voice (Lark <-> Claude)... (Ctrl+C de dung)" -ForegroundColor Cyan
+Write-Host "[*] Dang bat NGHE (Lark <-> Claude)... (Ctrl+C de dung)" -ForegroundColor Cyan
 Write-Host "    Thu muc lam viec: $((Get-Location).Path)" -ForegroundColor DarkGray
 node "lark-voice-bridge.mjs"
 

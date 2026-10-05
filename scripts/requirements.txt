@@ -1,4 +1,4 @@
-# Python phụ thuộc cho TÔM Voice (edge-tts — KHÔNG cần key Vbee).
+# Python phụ thuộc cho NGHÉ (edge-tts — KHÔNG cần key Vbee).
 # install.ps1 tự tạo venv (.venv) và cài các gói này. Cài lại thủ công:
 #   uv venv --python 3.12 .venv
 #   uv pip install --python .venv/Scripts/python.exe -r requirements.txt

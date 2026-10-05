@@ -1,24 +1,24 @@
 #!/usr/bin/env node
 /**
- * check-itto.mjs — soát HỢP ĐỒNG itto.yaml của gói app cục bộ. ZERO-DEPENDENCY.
+ * check-goi.mjs — soát HỢP ĐỒNG goi.yaml của gói app cục bộ. ZERO-DEPENDENCY.
  * Kiểm: đủ 4 mục I-T-T-O · có secrets · có tool.install/check/start · và MỌI script
- * (.mjs/.py/.ps1) khai trong itto CÓ TỒN TẠI (bắt lỗi bàn giao thiếu file).
+ * (.mjs/.py/.ps1) khai trong goi.yaml CÓ TỒN TẠI (bắt lỗi bàn giao thiếu file).
  * Exit ≠ 0 nếu còn lỗi ⇒ cổng chốt gói trước khi bàn giao.
  *
- * Chạy: node check-itto.mjs
+ * Chạy: node check-goi.mjs
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ITTO = path.join(HERE, "itto.yaml");
+const GOI = path.join(HERE, "goi.yaml");
 const ok = (b) => (b ? "✔" : "✘");
 let fail = 0;
 
 let text;
-try { text = fs.readFileSync(ITTO, "utf8"); }
-catch { console.error(`✘ không đọc được itto.yaml tại ${ITTO}`); process.exit(1); }
+try { text = fs.readFileSync(GOI, "utf8"); }
+catch { console.error(`✘ không đọc được goi.yaml tại ${GOI}`); process.exit(1); }
 
 const scalar = (key) => {
   const m = text.match(new RegExp(`^${key}:\\s*(.+)$`, "m"));
@@ -41,7 +41,7 @@ const listUnder = (key) => {
   return out;
 };
 
-console.log("== check-itto (local-app) ==\n");
+console.log("== check-goi (local-app) ==\n");
 
 const pkg = scalar("package"), ver = scalar("version"), kind = scalar("kind");
 console.log(`${ok(!!pkg && !!ver)} gói: ${pkg || "?"} v${ver || "?"} (kind: ${kind || "?"})`);
@@ -65,11 +65,11 @@ for (const k of ["install", "check", "start"]) {
   if (!has) fail++;
 }
 
-// Mọi script khai trong itto (.mjs/.py/.ps1) phải tồn tại
+// Mọi script khai trong goi.yaml (.mjs/.py/.ps1) phải tồn tại
 const paths = [...new Set(
   [...text.matchAll(/((?:[\w.-]+\/)+[\w.-]+\.(?:mjs|py|ps1))/g)].map((m) => m[1])
 )];
-console.log(`\nKiểm script khai trong itto (${paths.length}):`);
+console.log(`\nKiểm script khai trong goi.yaml (${paths.length}):`);
 for (const rel of paths) {
   const exists = fs.existsSync(path.join(HERE, rel));
   console.log(`  ${ok(exists)} ${rel}`);
@@ -77,6 +77,6 @@ for (const rel of paths) {
 }
 
 console.log(fail
-  ? `\n✘ Còn ${fail} lỗi trong hợp đồng — sửa itto.yaml / bổ sung file.`
-  : `\n✔ itto.yaml hợp lệ, mọi script có mặt.`);
+  ? `\n✘ Còn ${fail} lỗi trong hợp đồng — sửa goi.yaml / bổ sung file.`
+  : `\n✔ goi.yaml hợp lệ, mọi script có mặt.`);
 process.exit(fail ? 1 : 0);

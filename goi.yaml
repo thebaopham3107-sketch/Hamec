@@ -1,9 +1,9 @@
 # ============================================================================
-# itto.yaml — HỢP ĐỒNG ITTO của gói hamec-ai-assistant (TÔM Voice)
+# goi.yaml — HỢP ĐỒNG GÓI của hamec-ai-assistant (NGHÉ)
 # Trợ lý AI điều khiển Claude Code bằng GIỌNG NÓI / CHỮ qua nhóm Lark.
 # KIND = local-app: CHẠY TẠI MÁY (không GitHub Actions). "Nút bấm" = double-click
 # start.ps1; "trigger" = tin nói/gõ trong nhóm điều khiển Lark.
-# Soát gói: `node check-itto.mjs` (zero-dependency).
+# Soát gói: `node check-goi.mjs` (zero-dependency).
 # ============================================================================
 
 package: hamec-ai-assistant
@@ -34,7 +34,7 @@ input:
     - VOICE_CODE
     - PERMISSION_MODE
   phieu_input: docs/00-PHIEU-INPUT.md
-  preflight: node scripts/check-setup.mjs   # + node check-itto.mjs
+  preflight: node scripts/check-setup.mjs   # + node check-goi.mjs
 
 # ── T — TECH ──
 tech:
@@ -54,14 +54,14 @@ tool:
   bridge:  scripts/lark-voice-bridge.mjs
   stt:     scripts/whisper-server.py
   tts:     scripts/text_to_mp3.py            # edge-tts (mặc định); Vbee: scripts/text_to_mp3_vbee.py
-  cach_dung: "Vào NHÓM ĐIỀU KHIỂN Lark → NÓI (micro) hoặc GÕ chữ → TÔM trả lời bằng giọng/chữ."
+  cach_dung: "Vào NHÓM ĐIỀU KHIỂN Lark → NÓI (micro) hoặc GÕ chữ → NGHÉ trả lời bằng giọng/chữ."
 
 # ── O — OUTPUT ──
 output:
   writes_back:
     - "Trả lời GẮN vào đúng tin của CHỦ trong nhóm điều khiển (voice → audio, text → chữ)"
-  proof: "Cửa sổ bridge hiện '✅ Bridge sẵn sàng' + '✅ whisper STT sẵn sàng'; nói 1 câu → nghe TÔM đáp bằng giọng"
+  proof: "Cửa sổ bridge hiện '✅ Bridge sẵn sàng' + '✅ whisper STT sẵn sàng'; nói 1 câu → nghe NGHÉ đáp bằng giọng"
   note: |
     Không có Lark Base / bảng: đây là app điều khiển, không phải module sync.
     Muốn 24/7: đăng ký scripts/watchdog.mjs vào Windows Scheduled Task (xem docs/04-chay-va-24-7.md).
-    bypassPermissions = TÔM chạy thẳng lệnh máy → chỉ bật trên máy của bạn.
+    bypassPermissions = NGHÉ chạy thẳng lệnh máy → chỉ bật trên máy của bạn.

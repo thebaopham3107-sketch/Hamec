@@ -1,6 +1,6 @@
 # 00 — PHIẾU INPUT (điền xong là chạy)
 
-> Đây là mục **I** trong ITTO: mọi thứ CON NGƯỜI phải chuẩn bị TRƯỚC khi bật.
+> Đây là phần **Input** của hợp đồng gói (`goi.yaml`): mọi thứ CON NGƯỜI phải chuẩn bị TRƯỚC khi bật.
 > Điền hết ô dưới, qua `node scripts/check-setup.mjs` **XANH** thì mới bật `start.ps1`.
 
 ## 1. Công cụ nền (cài 1 lần) — xem `01-cai-dat-nen.md`
@@ -21,7 +21,7 @@
 | Đã đăng nhập `lark-cli` bằng app này (`--as bot`) | ☐ |
 
 ## 3. Nhóm điều khiển
-- ☐ Tạo **1 nhóm Lark riêng** (chỉ bạn) → đây là "nhóm điều khiển TÔM".
+- ☐ Tạo **1 nhóm Lark riêng** (chỉ bạn) → đây là "nhóm điều khiển NGHÉ".
 - ☐ **Thêm Bot** (app vừa tạo) vào nhóm này.
 
 ## 4. Hai giá trị lấy bằng `whoami.mjs` (xem `03-lay-openid-chatid.md`)
@@ -43,7 +43,7 @@ cd scripts && node whoami.mjs      # nhắn 1 tin vào nhóm → nó in ra 2 dò
 
 ## 6. Cổng chốt (cả hai phải XANH)
 ```bash
-node check-itto.mjs                 # gói đủ mảnh?
+node check-goi.mjs                 # gói đủ mảnh?
 node scripts/check-setup.mjs        # môi trường + Lark + .env sẵn sàng?
 ```
 XANH hết → `powershell -ExecutionPolicy Bypass -File scripts/start.ps1`.

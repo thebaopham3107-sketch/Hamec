@@ -22,7 +22,7 @@ lark-cli profile list              # phải thấy app của bạn "active": tru
 
 ## Thêm Bot vào NHÓM ĐIỀU KHIỂN
 - Tạo 1 nhóm Lark riêng (chỉ bạn) → **Add members → thêm Bot** (app vừa tạo).
-- Đây là nhóm duy nhất TÔM lắng nghe (khoá bằng `CONTROL_CHAT_ID`).
+- Đây là nhóm duy nhất NGHÉ lắng nghe (khoá bằng `CONTROL_CHAT_ID`).
 
 > **3 cái bẫy hay gặp:** (1) quên **Publish** version → event/scope không hiệu lực;
 > (2) thiếu `im:resource` → gửi/nhận audio hỏng; (3) mỗi app có `open_id` RIÊNG cho cùng một người —

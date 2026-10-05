@@ -1,7 +1,7 @@
-# hamec-ai-assistant — TÔM Voice 🎙️
+# hamec-ai-assistant — NGHÉ 🎙️
 
 Trợ lý AI **điều khiển Claude Code bằng GIỌNG NÓI (hoặc chữ) ngay trong Lark**.
-Bạn **bấm micro nói** trong một nhóm Lark → vài giây sau **nghe TÔM trả lời bằng giọng tiếng Việt**;
+Bạn **bấm micro nói** trong một nhóm Lark → vài giây sau **nghe NGHÉ trả lời bằng giọng tiếng Việt**;
 gõ chữ cũng được. Chạy **tại máy của bạn** (không cần server, không cần public URL).
 
 ```
@@ -16,7 +16,7 @@ Bạn nói (Lark voice) ──► [Whisper] giọng→chữ ──► [Claude Co
 
 ---
 
-## Hai đường cài (chuẩn ITTO)
+## Hai đường cài (chuẩn Hamec)
 
 ### ⚡ Đường NHANH NHẤT (làm tay, ~20–30')
 Đọc theo thứ tự trong `docs/`:
@@ -33,32 +33,32 @@ powershell -ExecutionPolicy Bypass -File install.ps1   # tạo venv + cài whisp
 # đăng nhập lark-cli --as bot + thêm bot vào nhóm điều khiển
 node whoami.mjs            # nhắn 1 tin vào nhóm → copy OWNER_OPEN_ID + CONTROL_CHAT_ID vào .env
 node check-setup.mjs       # cổng chốt: phải XANH
-powershell -ExecutionPolicy Bypass -File start.ps1     # bật TÔM
+powershell -ExecutionPolicy Bypass -File start.ps1     # bật NGHÉ
 ```
 
 ### 🤖 Đường TIỆN NHẤT (để AI tự dẫn)
-Đưa cho Claude Code prompt trong `docs/PROMPT-TRIEN-KHAI.md`. AI đọc `itto.yaml`, tự cài,
+Đưa cho Claude Code prompt trong `docs/PROMPT-TRIEN-KHAI.md`. AI đọc `goi.yaml`, tự cài,
 tự hỏi đúng 3 giá trị Input còn thiếu, tự chạy cổng chốt.
 
 ---
 
 ## Cổng chốt (chạy trước khi bật)
 ```bash
-node check-itto.mjs                 # gói đủ mảnh? (zero-dep)
+node check-goi.mjs                 # gói đủ mảnh? (zero-dep)
 node scripts/check-setup.mjs        # môi trường + Lark + .env đã sẵn? (XANH mới chạy)
 ```
 
 ## Dùng hằng ngày
 - **Bật:** double-click `scripts/start.ps1` (hoặc shortcut trỏ tới nó).
-- **Nói/gõ** trong nhóm điều khiển → TÔM trả lời.
+- **Nói/gõ** trong nhóm điều khiển → NGHÉ trả lời.
 - **Lệnh nhanh:** `/ping` · `/voice on|off` · `/help`.
 - **Tắt:** đóng cửa sổ (Ctrl+C).
 
 ## Cấu trúc
 ```
 hamec-ai-assistant/
-├── itto.yaml            # hợp đồng ITTO (Input/Tech/Tool/Output)
-├── check-itto.mjs       # cổng chốt gói (zero-dep)
+├── goi.yaml            # hợp đồng gói (Input/Tech/Tool/Output)
+├── check-goi.mjs       # cổng chốt gói (zero-dep)
 ├── docs/                # hướng dẫn cài + PHIẾU INPUT + PROMPT triển khai
 └── scripts/
     ├── lark-voice-bridge.mjs   # cầu nối chính (Lark ↔ Claude)
@@ -69,4 +69,4 @@ hamec-ai-assistant/
     ├── requirements.txt   .env.example
 ```
 
-> ⚠️ **Bảo mật:** không commit `.env`. `bypassPermissions` cho TÔM chạy thẳng lệnh máy — **chỉ bật trên máy của bạn**. App Secret Lark chỉ nằm trong lark-cli, không vào repo.
+> ⚠️ **Bảo mật:** không commit `.env`. `bypassPermissions` cho NGHÉ chạy thẳng lệnh máy — **chỉ bật trên máy của bạn**. App Secret Lark chỉ nằm trong lark-cli, không vào repo.

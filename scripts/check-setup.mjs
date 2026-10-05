@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * check-setup.mjs — CỔNG CHỐT runtime cho TÔM Voice (mục "preflight" của ITTO).
+ * check-setup.mjs — CỔNG CHỐT runtime cho NGHÉ (mục "preflight" của goi.yaml).
  * Soát mọi mắt xích TRƯỚC khi bật bridge. Exit ≠ 0 nếu còn đỏ ⇒ đừng chạy thật vội.
  * Zero-dependency, Node >= 18.
  *

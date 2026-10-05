@@ -105,13 +105,13 @@ log(`pid=${bridgePid ?? "?"} alive=${alive} heartbeat=${hbMin}m cũ`);
 if (!alive) {
   log("⚠ Bridge không chạy → khởi động lại…");
   startBridge();
-  await notify("⚠️ [TÔM Watchdog] Bridge Lark không chạy — đã tự khởi động lại.");
+  await notify("⚠️ [NGHÉ Watchdog] Bridge Lark không chạy — đã tự khởi động lại.");
 } else if (hbAgeMs > MAX_HB_AGE_MS) {
   log(`⚠ Heartbeat cũ ${hbMin} phút (> 35) → bridge có thể bị treo → kill + restart…`);
   killPid(bridgePid);
   await new Promise(r => setTimeout(r, 3000));
   startBridge();
-  await notify(`⚠️ [TÔM Watchdog] Bridge bị treo ${hbMin} phút — đã kill PID ${bridgePid} và khởi động lại.`);
+  await notify(`⚠️ [NGHÉ Watchdog] Bridge bị treo ${hbMin} phút — đã kill PID ${bridgePid} và khởi động lại.`);
 } else {
   log("✅ Bridge OK — không cần can thiệp.");
 }
